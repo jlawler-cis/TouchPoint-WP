@@ -258,32 +258,28 @@ cteOrganizationLocation AS
             , COALESCE(oai.[Latitude], paih.[Latitude], faih.[Latitude])           AS [lat]
             , COALESCE(oai.[Longitude], paih.[Longitude], faih.[Longitude])        AS [lng]
             , COALESCE(orc.[Description], prch.[Description], frch.[Description])  AS [resCodeName]
-        FROM cteTargetOrgs o           
-        JOIN dbo.Setting s ON s.Id = 'ExtraValueHost'
-        LEFT JOIN dbo.OrganizationExtra aoe ON
-            o.OrganizationId = aoe.OrganizationId 
-                AND s.Setting = aoe.Field
-        LEFT JOIN dbo.AddressInfo oai ON
-            aoe.Data = oai.FullAddress -- TODO change to ON o.OrganizationId = oai.OrganizationId and remove aoe and setting above when bvcms/bvcms#1964 is merged.
-        LEFT JOIN dbo.Zips z ON
-            CAST(SUBSTRING(SUBSTRING(aoe.Data, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(aoe.Data, 8, 1000)), 5) as INT) = z.ZipCode
-        LEFT JOIN lookup.ResidentCode orc
-            ON z.MetroMarginalCode = orc.id
-        LEFT JOIN dbo.People ph ON
-            (SELECT TOP 1 omh.PeopleId 
-            FROM dbo.OrganizationMembers omh 
-            WHERE o.OrganizationId = omh.OrganizationId 
-            AND omh.MemberTypeId IN ({})) = ph.PeopleId
-        LEFT JOIN dbo.Families fh ON
-            ph.FamilyId = fh.FamilyId
-        LEFT JOIN dbo.AddressInfo paih ON
-            ph.PeopleId = paih.PeopleId
-        LEFT JOIN dbo.AddressInfo faih ON
-            fh.FamilyId = faih.FamilyId
-        LEFT JOIN lookup.ResidentCode prch
-            ON ph.ResCodeId = prch.Id
-        LEFT JOIN lookup.ResidentCode frch
-            ON fh.ResCodeId = frch.Id
+        FROM cteTargetOrgs o 
+            LEFT JOIN AddressInfo oai 
+                ON o.OrganizationId = oai.OrganizationId
+            LEFT JOIN Zips z 
+                ON CAST(SUBSTRING(SUBSTRING(oai.FullAddress, 8, 1000), PATINDEX('%[0-9][0-9][0-9][0-9][0-9]%', SUBSTRING(oai.FullAddress, 8, 1000)), 5) as INT) = z.ZipCode
+            LEFT JOIN lookup.ResidentCode orc
+                ON z.MetroMarginalCode = orc.id
+            LEFT JOIN dbo.People ph ON
+                (SELECT TOP 1 omh.PeopleId 
+                FROM dbo.OrganizationMembers omh 
+                WHERE o.OrganizationId = omh.OrganizationId 
+                AND omh.MemberTypeId IN ({})) = ph.PeopleId
+            LEFT JOIN dbo.Families fh ON
+                ph.FamilyId = fh.FamilyId
+            LEFT JOIN dbo.AddressInfo paih ON
+                ph.PeopleId = paih.PeopleId
+            LEFT JOIN dbo.AddressInfo faih ON
+                fh.FamilyId = faih.FamilyId
+            LEFT JOIN lookup.ResidentCode prch
+                ON ph.ResCodeId = prch.Id
+            LEFT JOIN lookup.ResidentCode frch
+                ON fh.ResCodeId = frch.Id
     )
 -- join all our ctes together
 SELECT 
