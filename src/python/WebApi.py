@@ -3,7 +3,7 @@
 import re
 import json
 
-VERSION = "0.0.8"
+VERSION = "0.0.12"
 
 sgContactEvName = "Contact"
 
@@ -132,8 +132,8 @@ if ("SavedSearches" in Data.a):
         """.format(Data.PeopleId))
 
     Data.savedSearches.flags = model.SqlListDynamicData("""
-        SELECT TOP 100 q.Name, SUBSTRING(q.Name, 0, 4) AS QueryId FROM Query q
-        WHERE q.Name LIKE 'F[0-9][0-9]:%'
+        SELECT TOP 100 q.Name, q.QueryId FROM Query q
+        WHERE q.StatusFlag = 1
         ORDER BY q.Name
     """)
 
@@ -691,7 +691,7 @@ if ("person_wpIds" in Data.a and model.HttpMethod == "post"):
     ev = str(inData['evName'])
 
     for p in inData['people']:
-        model.AddExtraValueInt(int(p['peopleId']), ev, int(p['WpId']))
+        model.AddExtraValueInt(int(p['PeopleId']), ev, int(p['WpId']))
         Data.success += 1
 
 
@@ -798,11 +798,10 @@ if ("people_get" in Data.a and model.HttpMethod == "post"):
                 #    invsMemSubGroupsToImport[iid] = inData['inv'][iid]['memTypes']
 
     # Saved Searches (incl status flags)
-    if inData.has_key('inv'):
+    if inData.has_key('src'):
         for si in inData['src']:
-            if len(si) == 3 and si[0].upper() == "F" and si[1:3].isnumeric(): # status flag
-                rules.append("StatusFlag = '{}'".format(si))
-            elif re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
+            # TODO figure out a more efficient method for Status Flags
+            if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89AB][0-9a-f]{3}-[0-9a-f]{12}', si, re.I):
                 rules.append("SavedQuery(SavedQuery='{}') = 1".format(si))
 
     joiner = " " + joiner + " "
